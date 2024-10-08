@@ -46,6 +46,10 @@ def update_formulas(wb):
     else:
         # Update all sheets
         sheets_to_update = wb.worksheets
+        # Sheets to skip
+        sheets_to_skip = ['KORF VL', 'KORF BXL', 'KORF WA', 'Communal tax']
+
+        sheets_to_update = [ws for ws in sheets_to_update if ws.title not in sheets_to_skip]
 
     # 2. Create a nested mapping from sheet_name to (cell_address -> named_range)
     mapping = {}
@@ -97,6 +101,12 @@ def update_formulas(wb):
             # Reference does not include sheet name; assume current sheet
             ref_sheet = current_sheet
         cell_ref_clean = cell_ref.upper().replace('$', '')
+        
+        # Check if this cell reference is part of a range
+        if ':' in match.string:
+            # If it's part of a range, don't replace it
+            return match.group(0)
+        
         # Access the nested mapping
         return mapping.get(ref_sheet, {}).get(cell_ref_clean, match.group(0))  # Replace if mapped, else keep original
 

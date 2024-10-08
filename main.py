@@ -11,7 +11,7 @@ def main():
     print("=== Excel Formula and Named Range Manager ===\n")
     
     # 1. Prompt the user for file path with default value
-    default_file_path = '/Users/benjamin.van.dam/Documents/pit/Tax Calculation/Draft PB-berekening - AJ24 - Silverfin 31.07.2024.xlsx'
+    default_file_path = '/Users/benjamin.van.dam/Documents/pit/Tax Calculation/Latest/Draft PB-berekening - FINAAL AJ24 - 23.09 - 22u49.xlsx'
 
     while True:
         file_path = get_user_input("Enter the full path to the Excel file", default_file_path)
@@ -60,49 +60,83 @@ def main():
             # Initialize a list to hold multiple configurations for named ranges
             configurations = []
 
-            # Proceed with adding named ranges as before
             while True:
                 print("\n--- Add a New Named Range Configuration ---")
-                
-                # 2. Prompt for other inputs with default values
-                default_prefix = 'display_code_'
-                default_cell_range = 'L200:L408'
-                default_search_columns = 'J,K'
+                print("1. Named Range with Prefix")
+                print("2. Named Range without Prefix")
+                range_type = get_user_input("Enter the type of named range to create (1/2)", "1")
 
-                prefix = get_user_input("Enter the prefix for the named ranges", default_prefix)
-                cell_range = get_user_input("Enter the cell range (e.g., 'L200:L408')", default_cell_range)
-                search_columns_input = get_user_input("Enter the columns to search for tax codes (e.g., 'J,K')", default_search_columns)
-                search_columns = [col.strip().upper() for col in search_columns_input.split(',')]
+                if range_type == "1":
+                    # Named Range with Prefix
+                    default_prefix = 'display_code_'
+                    default_cell_range = 'L200:L408'
+                    default_search_columns = 'J,K'
 
-                # Validate search columns
-                valid_columns = [chr(i) for i in range(ord('A'), ord('Z')+1)]
-                invalid_cols = [col for col in search_columns if col not in valid_columns]
-                if invalid_cols:
-                    print(f"Error: Invalid column letters detected: {', '.join(invalid_cols)}. Please enter valid column letters (A-Z).\n")
+                    prefix = get_user_input("Enter the prefix for the named ranges", default_prefix)
+                    cell_range = get_user_input("Enter the cell range (e.g., 'L200:L408')", default_cell_range)
+                    search_columns_input = get_user_input("Enter the columns to search for tax codes (e.g., 'J,K')", default_search_columns)
+                    search_columns = [col.strip().upper() for col in search_columns_input.split(',')]
+
+                    # Validate search columns
+                    valid_columns = [chr(i) for i in range(ord('A'), ord('Z')+1)]
+                    invalid_cols = [col for col in search_columns if col not in valid_columns]
+                    if invalid_cols:
+                        print(f"Error: Invalid column letters detected: {', '.join(invalid_cols)}. Please enter valid column letters (A-Z).\n")
+                        continue
+
+                    configurations.append({
+                        'type': 'with_prefix',
+                        'prefix': prefix,
+                        'cell_range': cell_range,
+                        'search_columns': search_columns
+                    })
+                elif range_type == "2":
+                    # Named Range without Prefix
+                    default_cell_range = 'L200:L408'
+                    default_search_columns = 'J,K'
+
+                    cell_range = get_user_input("Enter the cell range (e.g., 'L200:L408')", default_cell_range)
+                    search_columns_input = get_user_input("Enter the columns to search for tax codes (e.g., 'J,K')", default_search_columns)
+                    search_columns = [col.strip().upper() for col in search_columns_input.split(',')]
+
+                    # Validate search columns
+                    valid_columns = [chr(i) for i in range(ord('A'), ord('Z')+1)]
+                    invalid_cols = [col for col in search_columns if col not in valid_columns]
+                    if invalid_cols:
+                        print(f"Error: Invalid column letters detected: {', '.join(invalid_cols)}. Please enter valid column letters (A-Z).\n")
+                        continue
+
+                    configurations.append({
+                        'type': 'without_prefix',
+                        'cell_range': cell_range,
+                        'search_columns': search_columns
+                    })
+                else:
+                    print("Invalid choice. Please enter 1 or 2.")
                     continue
 
-                # Store the configuration
-                configurations.append({
-                    'prefix': prefix,
-                    'cell_range': cell_range,
-                    'search_columns': search_columns
-                })
-
-                # Ask the user if they want to add another configuration
                 add_more = get_user_input("Do you want to add another range configuration? (yes/no)", "no").strip().lower()
                 if add_more not in ['yes', 'y']:
                     break
 
             # Process each configuration after collecting all configurations
             for config in configurations:
-                add_named_ranges(
-                    wb=wb,
-                    ws=ws,
-                    prefix=config['prefix'],
-                    cell_range=config['cell_range'],
-                    search_columns=config['search_columns']
-                )
-    
+                if config['type'] == 'with_prefix':
+                    add_named_ranges(
+                        wb=wb,
+                        ws=ws,
+                        prefix=config['prefix'],
+                        cell_range=config['cell_range'],
+                        search_columns=config['search_columns']
+                    )
+                else:
+                    add_named_ranges(
+                        wb=wb,
+                        ws=ws,
+                        cell_range=config['cell_range'],
+                        search_columns=config['search_columns']
+                    )
+
             print("\nNamed range creation completed.")
         
         elif choice == "2":

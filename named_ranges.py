@@ -4,16 +4,18 @@ import openpyxl
 from openpyxl.workbook.defined_name import DefinedName
 from utils import parse_cell
 
-def add_named_ranges(wb, ws, prefix, cell_range, search_columns):
+def add_named_ranges(wb, ws, cell_range, search_columns, prefix=None):
     """
-    Adds named ranges based on the provided prefix, cell range, and search columns.
+    Adds named ranges based on the provided cell range and search columns.
+    If a prefix is provided, it will be used for the named ranges and tax code validation will be applied.
+    If no prefix is provided, any non-empty cell value will be used for the named range.
     
     Parameters:
     - wb: openpyxl Workbook object
     - ws: openpyxl Worksheet object
-    - prefix: String prefix for the named ranges
     - cell_range: String representing the cell range (e.g., 'L200:L408')
-    - search_columns: List of column letters to search for tax codes (e.g., ['J', 'K'])
+    - search_columns: List of column letters to search for values (e.g., ['J', 'K'])
+    - prefix: Optional string prefix for the named ranges
     """
     # Extract start and end cells
     try:
@@ -34,11 +36,11 @@ def add_named_ranges(wb, ws, prefix, cell_range, search_columns):
     print(f"End Column: {end_col_letter}, End Row: {end_row}")
     print(f"Target Column: {target_column}")
 
-    # Iterate over the range and find tax codes in the specified columns
+    # Iterate over the range and find values in the specified columns
     for row in range(start_row, end_row + 1):
-        tax_code = None
+        value = None
 
-        # Loop through each specified column to search for a tax code
+        # Loop through each specified column to search for a value
         for col_letter in search_columns:
             cell_address = f'{col_letter}{row}'
             cell_value = ws[cell_address].value
@@ -50,15 +52,22 @@ def add_named_ranges(wb, ws, prefix, cell_range, search_columns):
             if cell_value is None:
                 continue
 
-            # Try converting to int (handles both int and float that can be cast to int)
-            try:
-                tax_code = int(cell_value)
-                break  # Found a valid tax code
-            except (ValueError, TypeError):
-                continue  # Not a valid tax code, continue searching
+            if prefix:
+                # If prefix is provided, apply tax code validation
+                if isinstance(cell_value, str) and cell_value.isdigit() and len(cell_value) == 4:
+                    value = cell_value
+                    break  # Found a valid tax code
+                elif isinstance(cell_value, int) and 1000 <= cell_value <= 9999:
+                    value = str(cell_value)
+                    break  # Found a valid tax code
+            else:
+                # If no prefix, use any non-empty value
+                value = str(cell_value).strip()
+                if value:
+                    break  # Found a non-empty value
 
-        # If no valid tax code is found, skip this row
-        if tax_code is None:
+        # If no valid value is found, skip this row
+        if value is None:
             continue
 
         # Check if the target cell has a valid value
@@ -71,7 +80,11 @@ def add_named_ranges(wb, ws, prefix, cell_range, search_columns):
         # Ensure sheet name is properly quoted (handles single quotes in sheet name)
         sheet_name_quoted = ws.title.replace("'", "''")
         target_cell_ref = f"'{sheet_name_quoted}'!${target_column}${row}"
-        named_range = f"{prefix}{tax_code}"
+        
+        if prefix:
+            named_range = f"{prefix}{value}"
+        else:
+            named_range = value
 
         # Debugging: Print the named range details
         print(f"Creating named range '{named_range}' referring to '{target_cell_ref}'.")
